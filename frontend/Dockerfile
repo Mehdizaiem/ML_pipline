@@ -4,7 +4,9 @@ WORKDIR /app
 
 # Copy package files and install dependencies
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm ci && \
+    npm rebuild && \
+    chmod +x node_modules/.bin/*  # Add this line to fix permissions
 
 # Copy the rest of the application
 COPY . .
