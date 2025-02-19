@@ -7,3 +7,6 @@ mlflow
 fastapi
 uvicorn
 joblib
+pydantic>=1.8.0,<2.0.0
+fastapi-cors
+python-multipart
