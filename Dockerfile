@@ -4,14 +4,14 @@ FROM python:3.12.3
 # Set the working directory in the container
 WORKDIR /app
 
-# Copy the current directory contents into the container at /app
-COPY . /app
+# Copy just the requirements file first
+COPY requirements.txt .
 
-# Install any needed packages specified in requirements.txt
+# Install dependencies - this layer will be cached as long as requirements.txt doesn't change
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Make port 80 available to the world outside this container (if your app needs to expose a port)
-# EXPOSE 80
+# Copy the rest of the application code
+COPY . .
 
 # Run main.py when the container launches
 CMD ["python", "main.py"]
