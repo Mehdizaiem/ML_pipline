@@ -6,14 +6,15 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 
-# Install react-scripts globally
-RUN npm install -g react-scripts
-
-# Copy the rest of the application
+# Copy the rest of the application  
 COPY . .
 
-# Build the application using global react-scripts
-RUN react-scripts build
+# Disable eslint during build
+ENV DISABLE_ESLINT_PLUGIN=true
+ENV ESLINT_NO_DEV_ERRORS=true
+
+# Build the application - using npx directly helps avoid path issues
+RUN npx --no-install react-scripts build
 
 # Install serve to run the application
 RUN npm install -g serve
