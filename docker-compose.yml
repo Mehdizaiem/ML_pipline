@@ -1,5 +1,4 @@
 version: '3'
-
 services:
   ml-backend:
     image: ml_pipeline:latest
@@ -16,6 +15,7 @@ services:
       - ml-network
 
   frontend:
+    image: ml_pipeline_frontend:latest
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -27,6 +27,7 @@ services:
       - REACT_APP_API_URL=http://localhost:8000
     networks:
       - ml-network
+    # Remove the command here since we're adding it to Dockerfile
 
 networks:
   ml-network:
