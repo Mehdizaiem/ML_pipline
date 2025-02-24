@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Box, Typography, TextField, Button, Paper, Grid, CircularProgress, Snackbar, Alert, MenuItem } from '@mui/material';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Dialog, Transition } from '@headlessui/react';
+import { ChartBarIcon, UserGroupIcon, PhoneIcon, ChartPieIcon, ArrowTrendingUpIcon } from '@heroicons/react/24/outline';
+import { Card, Metric, Text, Title, BarChart, LineChart, DonutChart } from '@tremor/react';
+import CountUp from 'react-countup';
+import TestDashboard from './components/TestDashboard';
 
 function App() {
+  const [showDashboard, setShowDashboard] = useState(false);
   const [loading, setLoading] = useState(false);
   const [features, setFeatures] = useState([]);
   const [formData, setFormData] = useState({
@@ -43,6 +48,29 @@ function App() {
   ]);
   const [areaCodes] = useState([408, 415, 510]);
 
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { 
+        duration: 0.6,
+        when: "beforeChildren",
+        staggerChildren: 0.2
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, x: -20 },
+    visible: { 
+      opacity: 1, 
+      x: 0,
+      transition: { duration: 0.4 }
+    }
+  };
+
   useEffect(() => {
     fetchFeatures();
   }, []);
@@ -62,7 +90,6 @@ function App() {
     const { name, value } = e.target;
     let processedValue = value;
     
-    // Convert numeric strings to numbers for numeric fields
     if (name !== 'State' && 
         name !== 'International plan' && 
         name !== 'Voice mail plan') {
@@ -99,8 +126,10 @@ function App() {
       
       const result = await response.json();
       setPrediction(result);
-      showAlert(`Prediction successful: ${result.prediction === 1 ? 'Customer will churn' : 'Customer will stay'}`, 
-                result.prediction === 1 ? 'warning' : 'success');
+      showAlert(
+        `Prediction successful: ${result.prediction === 1 ? 'Customer will churn' : 'Customer will stay'}`,
+        result.prediction === 1 ? 'warning' : 'success'
+      );
     } catch (error) {
       showAlert(`Error: ${error.message}`, 'error');
       setPrediction(null);
@@ -132,446 +161,497 @@ function App() {
     }));
   };
 
+  if (showDashboard) {
+    return <TestDashboard onBack={() => setShowDashboard(false)} />;
+  }
+
   return (
-    <Container maxWidth="lg">
-      <Box sx={{ my: 4 }}>
-        <Typography variant="h3" component="h1" gutterBottom align="center">
-          Telecom Customer Churn Predictor
-        </Typography>
-        
-        <Grid container spacing={4}>
-          <Grid item xs={12} md={6}>
-            <Paper elevation={3} sx={{ p: 3 }}>
-              <Typography variant="h5" component="h2" gutterBottom>
-                Enter Customer Data
-              </Typography>
-              
-              <form onSubmit={handleSubmit}>
-                {/* Customer Information */}
-                <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                  Customer Information
-                </Typography>
-                <Grid container spacing={2}>
-                  {/* State dropdown */}
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      select
-                      fullWidth
-                      label="State"
-                      name="State"
-                      value={formData['State']}
-                      onChange={handleInputChange}
-                      variant="outlined"
-                      size="small"
-                    >
-                      {states.map((state) => (
-                        <MenuItem key={state} value={state}>{state}</MenuItem>
-                      ))}
-                    </TextField>
-                  </Grid>
-                  
-                  {/* Area code dropdown */}
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      select
-                      fullWidth
-                      label="Area Code"
-                      name="Area code"
-                      value={formData['Area code']}
-                      onChange={handleInputChange}
-                      variant="outlined"
-                      size="small"
-                    >
-                      {areaCodes.map((code) => (
-                        <MenuItem key={code} value={code}>{code}</MenuItem>
-                      ))}
-                    </TextField>
-                  </Grid>
-                  
-                  {/* Account length */}
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Account Length (days)"
-                      name="Account length"
-                      type="number"
-                      value={formData['Account length']}
-                      onChange={handleInputChange}
-                      variant="outlined"
-                      size="small"
-                    />
-                  </Grid>
-                  
-                  {/* Plan types */}
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      select
-                      fullWidth
-                      label="International Plan"
-                      name="International plan"
-                      value={formData['International plan']}
-                      onChange={handleInputChange}
-                      variant="outlined"
-                      size="small"
-                    >
-                      <MenuItem value="no">No</MenuItem>
-                      <MenuItem value="yes">Yes</MenuItem>
-                    </TextField>
-                  </Grid>
-                  
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      select
-                      fullWidth
-                      label="Voice Mail Plan"
-                      name="Voice mail plan"
-                      value={formData['Voice mail plan']}
-                      onChange={handleInputChange}
-                      variant="outlined"
-                      size="small"
-                    >
-                      <MenuItem value="no">No</MenuItem>
-                      <MenuItem value="yes">Yes</MenuItem>
-                    </TextField>
-                  </Grid>
-                  
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Number of Voicemail Messages"
-                      name="Number vmail messages"
-                      type="number"
-                      value={formData['Number vmail messages']}
-                      onChange={handleInputChange}
-                      variant="outlined"
-                      size="small"
-                    />
-                  </Grid>
-                </Grid>
-                
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+      <motion.div 
+        className="container mx-auto px-4 py-8"
+        initial="hidden"
+        animate="visible"
+        variants={containerVariants}
+      >
+        {/* Header Section */}
+        <div className="flex justify-between items-center mb-12">
+          <div className="flex items-center space-x-4">
+            <motion.div
+              className="p-3 bg-indigo-600 rounded-lg"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <PhoneIcon className="h-8 w-8 text-white" />
+            </motion.div>
+            <div>
+              <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
+                Telecom Customer Churn Predictor
+              </h1>
+              <p className="text-gray-600 dark:text-gray-300 mt-2">
+                Predict customer behavior with advanced ML
+              </p>
+            </div>
+          </div>
+          
+          <motion.button
+            onClick={() => setShowDashboard(true)}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg
+                     transition-colors duration-200 flex items-center space-x-2 shadow-lg"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <ChartPieIcon className="h-5 w-5" />
+            <span>View Test Results</span>
+          </motion.button>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Form Section */}
+          <motion.div
+            variants={itemVariants}
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6"
+          >
+            <div className="flex items-center space-x-3 mb-6">
+              <UserGroupIcon className="h-6 w-6 text-indigo-600" />
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
+                Customer Information
+              </h2>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Customer Basic Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    State
+                  </label>
+                  <select
+                    name="State"
+                    value={formData['State']}
+                    onChange={handleInputChange}
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 
+                             bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                             px-4 py-2 focus:ring-2 focus:ring-indigo-500"
+                  >
+                    {states.map(state => (
+                      <option key={state} value={state}>{state}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Area Code
+                  </label>
+                  <select
+                    name="Area code"
+                    value={formData['Area code']}
+                    onChange={handleInputChange}
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 
+                             bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                             px-4 py-2 focus:ring-2 focus:ring-indigo-500"
+                  >
+                    {areaCodes.map(code => (
+                      <option key={code} value={code}>{code}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Plans Section */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    International Plan
+                  </label>
+                  <select
+                    name="International plan"
+                    value={formData['International plan']}
+                    onChange={handleInputChange}
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 
+                             bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                             px-4 py-2 focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="no">No</option>
+                    <option value="yes">Yes</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Voice Mail Plan
+                  </label>
+                  <select
+                    name="Voice mail plan"
+                    value={formData['Voice mail plan']}
+                    onChange={handleInputChange}
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 
+                             bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                             px-4 py-2 focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="no">No</option>
+                    <option value="yes">Yes</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Usage Sections */}
+              <div className="space-y-6">
                 {/* Day Usage */}
-                <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
-                  Day Usage
-                </Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} sm={4}>
-                    <TextField
-                      fullWidth
-                      label="Day Minutes"
-                      name="Total day minutes"
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white flex items-center space-x-2">
+                    <ArrowTrendingUpIcon className="h-5 w-5 text-indigo-600" />
+                    <span>Day Usage</span>
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <input
                       type="number"
+                      name="Total day minutes"
                       value={formData['Total day minutes']}
                       onChange={handleInputChange}
-                      variant="outlined"
-                      size="small"
+                      placeholder="Minutes"
+                      className="rounded-lg border border-gray-300 dark:border-gray-600 
+                               bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                               px-4 py-2 focus:ring-2 focus:ring-indigo-500"
                     />
-                  </Grid>
-                  <Grid item xs={12} sm={4}>
-                    <TextField
-                      fullWidth
-                      label="Day Calls"
-                      name="Total day calls"
+                    <input
                       type="number"
+                      name="Total day calls"
                       value={formData['Total day calls']}
                       onChange={handleInputChange}
-                      variant="outlined"
-                      size="small"
+                      placeholder="Calls"
+                      className="rounded-lg border border-gray-300 dark:border-gray-600 
+                               bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                               px-4 py-2 focus:ring-2 focus:ring-indigo-500"
                     />
-                  </Grid>
-                  <Grid item xs={12} sm={4}>
-                    <TextField
-                      fullWidth
-                      label="Day Charge ($)"
-                      name="Total day charge"
+                    <input
                       type="number"
+                      name="Total day charge"
                       value={formData['Total day charge']}
                       onChange={handleInputChange}
-                      variant="outlined"
-                      size="small"
+                      placeholder="Charge"
+                      className="rounded-lg border border-gray-300 dark:border-gray-600 
+                               bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                               px-4 py-2 focus:ring-2 focus:ring-indigo-500"
                     />
-                  </Grid>
-                </Grid>
-                
+                  </div>
+                </div>
+
                 {/* Evening Usage */}
-                <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
-                  Evening Usage
-                </Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} sm={4}>
-                    <TextField
-                      fullWidth
-                      label="Evening Minutes"
-                      name="Total eve minutes"
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white flex items-center space-x-2">
+                    <ArrowTrendingUpIcon className="h-5 w-5 text-indigo-600" />
+                    <span>Evening Usage</span>
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <input
                       type="number"
+                      name="Total eve minutes"
                       value={formData['Total eve minutes']}
                       onChange={handleInputChange}
-                      variant="outlined"
-                      size="small"
+                      placeholder="Minutes"
+                      className="rounded-lg border border-gray-300 dark:
+                      border-gray-600 
+                               bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                               px-4 py-2 focus:ring-2 focus:ring-indigo-500"
                     />
-                  </Grid>
-                  <Grid item xs={12} sm={4}>
-                    <TextField
-                      fullWidth
-                      label="Evening Calls"
-                      name="Total eve calls"
+                    <input
                       type="number"
+                      name="Total eve calls"
                       value={formData['Total eve calls']}
                       onChange={handleInputChange}
-                      variant="outlined"
-                      size="small"
+                      placeholder="Calls"
+                      className="rounded-lg border border-gray-300 dark:border-gray-600 
+                               bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                               px-4 py-2 focus:ring-2 focus:ring-indigo-500"
                     />
-                  </Grid>
-                  <Grid item xs={12} sm={4}>
-                    <TextField
-                      fullWidth
-                      label="Evening Charge ($)"
-                      name="Total eve charge"
+                    <input
                       type="number"
+                      name="Total eve charge"
                       value={formData['Total eve charge']}
                       onChange={handleInputChange}
-                      variant="outlined"
-                      size="small"
+                      placeholder="Charge"
+                      className="rounded-lg border border-gray-300 dark:border-gray-600 
+                               bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                               px-4 py-2 focus:ring-2 focus:ring-indigo-500"
                     />
-                  </Grid>
-                </Grid>
-                
+                  </div>
+                </div>
+
                 {/* Night Usage */}
-                <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
-                  Night Usage
-                </Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} sm={4}>
-                    <TextField
-                      fullWidth
-                      label="Night Minutes"
-                      name="Total night minutes"
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white flex items-center space-x-2">
+                    <ArrowTrendingUpIcon className="h-5 w-5 text-indigo-600" />
+                    <span>Night Usage</span>
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <input
                       type="number"
+                      name="Total night minutes"
                       value={formData['Total night minutes']}
                       onChange={handleInputChange}
-                      variant="outlined"
-                      size="small"
+                      placeholder="Minutes"
+                      className="rounded-lg border border-gray-300 dark:border-gray-600 
+                               bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                               px-4 py-2 focus:ring-2 focus:ring-indigo-500"
                     />
-                  </Grid>
-                  <Grid item xs={12} sm={4}>
-                    <TextField
-                      fullWidth
-                      label="Night Calls"
-                      name="Total night calls"
+                    <input
                       type="number"
+                      name="Total night calls"
                       value={formData['Total night calls']}
                       onChange={handleInputChange}
-                      variant="outlined"
-                      size="small"
+                      placeholder="Calls"
+                      className="rounded-lg border border-gray-300 dark:border-gray-600 
+                               bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                               px-4 py-2 focus:ring-2 focus:ring-indigo-500"
                     />
-                  </Grid>
-                  <Grid item xs={12} sm={4}>
-                    <TextField
-                      fullWidth
-                      label="Night Charge ($)"
-                      name="Total night charge"
+                    <input
                       type="number"
+                      name="Total night charge"
                       value={formData['Total night charge']}
                       onChange={handleInputChange}
-                      variant="outlined"
-                      size="small"
+                      placeholder="Charge"
+                      className="rounded-lg border border-gray-300 dark:border-gray-600 
+                               bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                               px-4 py-2 focus:ring-2 focus:ring-indigo-500"
                     />
-                  </Grid>
-                </Grid>
-                
+                  </div>
+                </div>
+
                 {/* International Usage */}
-                <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
-                  International Usage
-                </Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} sm={4}>
-                    <TextField
-                      fullWidth
-                      label="Int'l Minutes"
-                      name="Total intl minutes"
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white flex items-center space-x-2">
+                    <ArrowTrendingUpIcon className="h-5 w-5 text-indigo-600" />
+                    <span>International Usage</span>
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <input
                       type="number"
+                      name="Total intl minutes"
                       value={formData['Total intl minutes']}
                       onChange={handleInputChange}
-                      variant="outlined"
-                      size="small"
+                      placeholder="Minutes"
+                      className="rounded-lg border border-gray-300 dark:border-gray-600 
+                               bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                               px-4 py-2 focus:ring-2 focus:ring-indigo-500"
                     />
-                  </Grid>
-                  <Grid item xs={12} sm={4}>
-                    <TextField
-                      fullWidth
-                      label="Int'l Calls"
-                      name="Total intl calls"
+                    <input
                       type="number"
+                      name="Total intl calls"
                       value={formData['Total intl calls']}
                       onChange={handleInputChange}
-                      variant="outlined"
-                      size="small"
+                      placeholder="Calls"
+                      className="rounded-lg border border-gray-300 dark:border-gray-600 
+                               bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                               px-4 py-2 focus:ring-2 focus:ring-indigo-500"
                     />
-                  </Grid>
-                  <Grid item xs={12} sm={4}>
-                    <TextField
-                      fullWidth
-                      label="Int'l Charge ($)"
-                      name="Total intl charge"
+                    <input
                       type="number"
+                      name="Total intl charge"
                       value={formData['Total intl charge']}
                       onChange={handleInputChange}
-                      variant="outlined"
-                      size="small"
+                      placeholder="Charge"
+                      className="rounded-lg border border-gray-300 dark:border-gray-600 
+                               bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                               px-4 py-2 focus:ring-2 focus:ring-indigo-500"
                     />
-                  </Grid>
-                </Grid>
-                
+                  </div>
+                </div>
+
                 {/* Customer Service */}
-                <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
-                  Customer Service
-                </Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Customer Service Calls"
-                      name="Customer service calls"
-                      type="number"
-                      value={formData['Customer service calls']}
-                      onChange={handleInputChange}
-                      variant="outlined"
-                      size="small"
-                    />
-                  </Grid>
-                  
-                  <Grid item xs={12} sx={{ mt: 3 }}>
-                    <Button 
-                      type="submit" 
-                      variant="contained" 
-                      color="primary" 
-                      fullWidth
-                      disabled={loading}
-                      sx={{ py: 1.5 }}
-                    >
-                      {loading ? <CircularProgress size={24} /> : 'Predict Churn'}
-                    </Button>
-                  </Grid>
-                </Grid>
-              </form>
-            </Paper>
-          </Grid>
-          
-          <Grid item xs={12} md={6}>
-            <Paper elevation={3} sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
-              <Typography variant="h5" component="h2" gutterBottom>
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white flex items-center space-x-2">
+                    <UserGroupIcon className="h-5 w-5 text-indigo-600" />
+                    <span>Customer Service</span>
+                  </h3>
+                  <input
+                    type="number"
+                    name="Customer service calls"
+                    value={formData['Customer service calls']}
+                    onChange={handleInputChange}
+                    placeholder="Number of calls"
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 
+                             bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                             px-4 py-2 focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+              </div>
+
+              <motion.button
+                type="submit"
+                className="w-full bg-indigo-600 text-white py-3 px-6 rounded-lg
+                         hover:bg-indigo-700 transition-colors duration-200
+                         flex items-center justify-center space-x-2"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                disabled={loading}
+              >
+                {loading ? (
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                ) : (
+                  <>
+                    <ChartBarIcon className="h-5 w-5" />
+                    <span>Predict Churn</span>
+                  </>
+                )}
+              </motion.button>
+            </form>
+          </motion.div>
+          {/* Results Section */}
+          <motion.div
+            variants={itemVariants}
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6"
+          >
+            <div className="flex items-center space-x-3 mb-6">
+              <ChartPieIcon className="h-6 w-6 text-indigo-600" />
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
                 Prediction Results
-              </Typography>
-              
-              {prediction ? (
-                <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
-                  <Typography variant="h4" color={prediction.prediction === 1 ? 'error' : 'success'} gutterBottom>
+              </h2>
+            </div>
+
+            {prediction ? (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-6"
+              >
+                <div className="text-center p-6 rounded-lg bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-gray-700 dark:to-gray-600">
+                  <h3 className={`text-3xl font-bold mb-2 ${
+                    prediction.prediction === 1 ? 'text-red-600' : 'text-green-600'
+                  }`}>
                     {prediction.prediction === 1 ? 'Customer Will Churn' : 'Customer Will Stay'}
-                  </Typography>
-                  
-                  <Box sx={{ width: '100%', mt: 3 }}>
-                    <Typography variant="body1" gutterBottom>
-                      Churn Probability: {(prediction.churn_probability * 100).toFixed(2)}%
-                    </Typography>
-                    <Box 
-                      sx={{ 
-                        height: 20, 
-                        width: '100%', 
-                        bgcolor: '#e0e0e0',
-                        borderRadius: 1,
-                        overflow: 'hidden'
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          height: '100%',
-                          width: `${prediction.churn_probability * 100}%`,
-                          bgcolor: prediction.churn_probability > 0.5 ? 'error.main' : 'warning.main',
-                        }}
-                      />
-                    </Box>
-                    
-                    <Typography variant="body1" sx={{ mt: 2 }} gutterBottom>
-                      Retention Probability: {(prediction.retention_probability * 100).toFixed(2)}%
-                    </Typography>
-                    <Box 
-                      sx={{ 
-                        height: 20, 
-                        width: '100%', 
-                        bgcolor: '#e0e0e0',
-                        borderRadius: 1,
-                        overflow: 'hidden'
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          height: '100%',
-                          width: `${prediction.retention_probability * 100}%`,
-                          bgcolor: 'success.main',
-                        }}
-                      />
-                    </Box>
-                  </Box>
-                </Box>
-              ) : (
-                <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                  <Typography variant="body1" color="textSecondary">
-                    Enter customer data and click "Predict Churn" to see results
-                  </Typography>
-                </Box>
-              )}
-            </Paper>
-          </Grid>
-          
-          <Grid item xs={12}>
-            <Paper elevation={3} sx={{ p: 3 }}>
-              <Typography variant="h5" component="h2" gutterBottom>
-                Feature Importance
-              </Typography>
-              
-              {features.length > 0 ? (
-                <ResponsiveContainer width="100%" height={400}>
-                  <BarChart
-                    data={prepareChartData()}
-                    margin={{
-                      top: 20,
-                      right: 30,
-                      left: 20,
-                      bottom: 60,
-                    }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis 
-                      dataKey="name" 
-                      angle={-45} 
-                      textAnchor="end" 
-                      height={70}
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300">
+                    Confidence Score
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 rounded-lg bg-green-50 dark:bg-gray-700">
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">
+                      Retention Probability
+                    </p>
+                    <CountUp
+                      end={prediction.retention_probability * 100}
+                      decimals={1}
+                      suffix="%"
+                      duration={2}
+                      className="text-2xl font-bold text-green-600 dark:text-green-400"
                     />
-                    <YAxis label={{ value: 'Importance (%)', angle: -90, position: 'insideLeft' }} />
-                    <Tooltip formatter={(value) => [`${value}%`, 'Importance']} />
-                    <Legend />
-                    <Bar dataKey="importance" fill="#8884d8" />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <Box sx={{ height: 400, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                  <CircularProgress />
-                </Box>
-              )}
-            </Paper>
-          </Grid>
-        </Grid>
-      </Box>
-      
-      <Snackbar 
-        open={alert.open} 
-        autoHideDuration={6000} 
-        onClose={handleCloseAlert}
-      >
-        <Alert onClose={handleCloseAlert} severity={alert.severity}>
-          {alert.message}
-        </Alert>
-      </Snackbar>
-    </Container>
+                  </div>
+
+                  <div className="p-4 rounded-lg bg-red-50 dark:bg-gray-700">
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">
+                      Churn Probability
+                    </p>
+                    <CountUp
+                      end={prediction.churn_probability * 100}
+                      decimals={1}
+                      suffix="%"
+                      duration={2}
+                      className="text-2xl font-bold text-red-600 dark:text-red-400"
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-6">
+                  <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                    Probability Distribution
+                  </h4>
+                  <div className="h-4 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-green-500 to-red-500"
+                      style={{ width: `${prediction.churn_probability * 100}%` }}
+                    ></div>
+                  </div>
+                </div>
+              </motion.div>
+            ) : (
+              <div className="h-full flex items-center justify-center text-gray-500 dark:text-gray-400">
+                Enter customer data and click "Predict Churn" to see results
+              </div>
+            )}
+          </motion.div>
+        </div>
+
+        {/* Feature Importance Chart */}
+        <motion.div
+          variants={itemVariants}
+          className="mt-8 bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6"
+        >
+          <div className="flex items-center space-x-3 mb-6">
+            <ChartBarIcon className="h-6 w-6 text-indigo-600" />
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
+              Feature Importance
+            </h2>
+          </div>
+
+          {features.length > 0 ? (
+            <div className="h-96">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={prepareChartData()}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    dataKey="name" 
+                    angle={-45} 
+                    textAnchor="end" 
+                    height={70}
+                    tick={{ fill: '#666' }}
+                  />
+                  <YAxis
+                    label={{ 
+                      value: 'Importance (%)', 
+                      angle: -90, 
+                      position: 'insideLeft',
+                      fill: '#666'
+                    }}
+                  />
+                  <Tooltip 
+                    formatter={(value) => [`${value}%`, 'Importance']}
+                    contentStyle={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                      border: '1px solid #ccc'
+                    }}
+                  />
+                  <Legend />
+                  <Bar 
+                    dataKey="importance" 
+                    fill="#6366f1"
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="h-96 flex items-center justify-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+            </div>
+          )}
+        </motion.div>
+      </motion.div>
+
+      {/* Alert */}
+      <AnimatePresence>
+        {alert.open && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className={`fixed bottom-4 right-4 p-4 rounded-lg shadow-lg ${
+              alert.severity === 'success' ? 'bg-green-100 text-green-800' :
+              alert.severity === 'error' ? 'bg-red-100 text-red-800' :
+              alert.severity === 'warning' ? 'bg-yellow-100 text-yellow-800' :
+              'bg-blue-100 text-blue-800'
+            }`}
+          >
+            {alert.message}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 
