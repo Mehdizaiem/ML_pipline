@@ -4,7 +4,7 @@ import { Dialog, Transition } from '@headlessui/react';
 import { ChartBarIcon, UserGroupIcon, PhoneIcon, ChartPieIcon, ArrowTrendingUpIcon } from '@heroicons/react/24/outline';
 import { Card, Metric, Text, Title, BarChart, LineChart, DonutChart } from '@tremor/react';
 import CountUp from 'react-countup';
-import TestDashboard from './components/TestDashboard';
+import TestDashboard from 'TestDashboard';
 
 function App() {
   const [showDashboard, setShowDashboard] = useState(false);
