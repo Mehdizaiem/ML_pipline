@@ -10,7 +10,7 @@ COPY package*.json ./
 RUN npm install
 
 # Set Node.js memory limit
-ENV NODE_OPTIONS=--max_old_space_size=8192  # 8GB
+ENV NODE_OPTIONS=--max_old_space_size=8192  
 
 # Copy source and set permissions
 COPY . .
