@@ -9,6 +9,7 @@ import os
 from model_pipeline import prepare_data
 import logging
 from sklearn.preprocessing import LabelEncoder
+import json
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -25,6 +26,35 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Pydantic models for API requests/responses
+class FeatureInput(BaseModel):
+    features: Dict[str, Union[float, int, str]]
+
+class PredictionOutput(BaseModel):
+    prediction: int
+    churn_probability: float
+    retention_probability: float
+
+class FeatureImportance(BaseModel):
+    name: str
+    importance: float
+
+class HealthStatus(BaseModel):
+    status: str
+    model_loaded: bool
+
+class TestResult(BaseModel):
+    name: str
+    status: str
+    duration: float
+    error_message: Optional[str] = None
+
+class TestResults(BaseModel):
+    total: int
+    passed: int
+    failed: int
+    results: List[TestResult]
 
 # Load the model
 def load_model():
@@ -44,23 +74,6 @@ def get_feature_names():
     except Exception as e:
         logger.error(f"Error loading column names: {e}")
         return []
-
-# Pydantic models for API requests/responses
-class FeatureInput(BaseModel):
-    features: Dict[str, Union[float, int, str]]
-
-class PredictionOutput(BaseModel):
-    prediction: int
-    churn_probability: float
-    retention_probability: float
-
-class FeatureImportance(BaseModel):
-    name: str
-    importance: float
-
-class HealthStatus(BaseModel):
-    status: str
-    model_loaded: bool
 
 @app.post("/api/predict", response_model=PredictionOutput)
 async def predict(data: FeatureInput):
@@ -139,6 +152,33 @@ async def get_features():
 async def health_check():
     model = load_model()
     return {"status": "healthy", "model_loaded": model is not None}
+
+@app.get("/api/test-results")
+async def get_test_results():
+    try:
+        # Try to read from test_results.json
+        if os.path.exists("test_results.json"):
+            with open("test_results.json", "r") as f:
+                return json.load(f)
+        return {
+            "total": 0,
+            "passed": 0,
+            "failed": 0,
+            "results": []
+        }
+    except Exception as e:
+        logger.error(f"Error getting test results: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/test-results")
+async def save_test_results(results: TestResults):
+    try:
+        with open("test_results.json", "w") as f:
+            json.dump(results.dict(), f)
+        return {"message": "Test results saved successfully"}
+    except Exception as e:
+        logger.error(f"Error saving test results: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn

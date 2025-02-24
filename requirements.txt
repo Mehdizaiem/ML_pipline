@@ -18,6 +18,15 @@ pytest
 pytest-cov
 requests
 psutil
+requests>=2.31.0
+
+# UI/Data Visualization
+plotly==5.18.0
+dash==2.14.1
+streamlit==1.28.0
+gradio==4.1.0
+seaborn==0.13.0
+
 
 # Serialization and Model Management
 joblib

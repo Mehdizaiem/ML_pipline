@@ -17,7 +17,9 @@ def test_predict_endpoint_success():
     """Test successful prediction"""
     test_data = {
         "features": {
+            "State": "NY",
             "Account length": 100,
+            "Area code": 408,
             "International plan": "no",
             "Voice mail plan": "no",
             "Number vmail messages": 0,

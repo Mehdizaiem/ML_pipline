@@ -25,7 +25,9 @@ def test_predict_endpoint_valid_input():
     """Test prediction endpoint with valid input"""
     test_data = {
         "features": {
+            "State": "NY",
             "Account length": 100,
+            "Area code": 408,
             "International plan": "no",
             "Voice mail plan": "no",
             "Number vmail messages": 0,
