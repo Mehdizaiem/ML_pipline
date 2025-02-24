@@ -9,6 +9,9 @@ COPY package*.json ./
 # Install dependencies
 RUN npm install
 
+# Set Node.js memory limit
+ENV NODE_OPTIONS=--max_old_space_size=8192  # 8GB
+
 # Copy source and set permissions
 COPY . .
 RUN chown -R node:node /usr/src/app
