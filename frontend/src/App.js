@@ -5,7 +5,7 @@ import { ChartBarIcon, UserGroupIcon, PhoneIcon, ChartPieIcon, ArrowTrendingUpIc
 import { Card, Metric, Text, Title, BarChart, LineChart, DonutChart } from '@tremor/react';
 import CountUp from 'react-countup';
 import TestDashboard from './TestDashboard';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import {Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 function App() {
   const [showDashboard, setShowDashboard] = useState(false);
   const [loading, setLoading] = useState(false);
