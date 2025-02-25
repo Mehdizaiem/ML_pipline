@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+*from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import pickle
 import pandas as pd
@@ -82,6 +82,25 @@ async def predict(data: FeatureInput):
         raise HTTPException(status_code=500, detail="Model failed to load")
     
     try:
+        # Get training data to understand expected features
+        df_train = pd.read_csv("churn-bigml-80.csv")
+        expected_features = list(df_train.drop(columns=['Churn']).columns)
+        
+        # Check if all required features are present
+        input_features = data.features.keys()
+        missing_features = [f for f in expected_features if f not in input_features]
+        
+        # If missing features, fill with default values from training data mean/mode
+        if missing_features:
+            logger.warning(f"Missing features detected: {missing_features}")
+            for feature in missing_features:
+                if feature in df_train.select_dtypes(include=['object']).columns:
+                    # For categorical features, use the most common value
+                    data.features[feature] = df_train[feature].mode()[0]
+                else:
+                    # For numerical features, use the mean
+                    data.features[feature] = float(df_train[feature].mean())
+        
         # Convert input dict to DataFrame
         input_df = pd.DataFrame([data.features])
         
@@ -95,13 +114,30 @@ async def predict(data: FeatureInput):
         categorical_cols = input_df.select_dtypes(include=['object']).columns
         categorical_cols = [col for col in categorical_cols 
                           if col not in boolean_cols]
-        ]
         
-        features.sort(key=lambda x: x["importance"], reverse=True)
-        return features
+        # Use training data to fit label encoders
+        label_encoders = {}
+        for col in categorical_cols:
+            if col in df_train.columns:
+                label_encoders[col] = LabelEncoder()
+                # Fit on training data
+                label_encoders[col].fit(df_train[col])
+                # Transform input data
+                input_df[col] = label_encoders[col].transform(input_df[col])
         
+        # Make prediction
+        prediction = model.predict(input_df)
+        probability = model.predict_proba(input_df)
+        
+        result = {
+            "prediction": int(prediction[0]),
+            "churn_probability": float(probability[0][1]),
+            "retention_probability": float(probability[0][0])
+        }
+        
+        return result
     except Exception as e:
-        logger.error(f"Feature importance error: {str(e)}")
+        logger.error(f"Prediction error: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/api/health", response_model=HealthStatus)

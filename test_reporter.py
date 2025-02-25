@@ -31,7 +31,7 @@ def parse_pytest_output(output):
                 if status == 'failed':
                     error_start = output.find(line) + len(line)
                     error_end = output.find('\n===', error_start)
-    }
+    
 
 def send_results(results):
     try:
