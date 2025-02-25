@@ -80,6 +80,18 @@ def test_api_response_time():
             "Number vmail messages": 0,
             "Total day minutes": 200,
             "Total day calls": 100,
+def test_api_response_time():
+    """Test API response time"""
+    test_data = {
+        "features": {
+            "State": "NY",
+            "Account length": 100,
+            "Area code": 408,
+            "International plan": "no",
+            "Voice mail plan": "no",
+            "Number vmail messages": 0,
+            "Total day minutes": 200,
+            "Total day calls": 100,
             "Total day charge": 34,
             "Total eve minutes": 200,
             "Total eve calls": 100,

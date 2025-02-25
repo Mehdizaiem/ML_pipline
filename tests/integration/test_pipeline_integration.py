@@ -56,21 +56,25 @@ def test_model_api_consistency():
     """Test if direct model predictions match API predictions"""
     # Get a test sample from the dataset
     df_test = pd.read_csv("churn-bigml-20.csv")
-    test_row = df_test.iloc[0].drop('Churn')
+    test_row = df_test.iloc[0]
     
     # Format the data for API request
     api_data = {
-        "features": test_row.to_dict()
+        "features": test_row.drop('Churn').to_dict()
     }
     
     # Get prediction from API
     response = requests.post("http://localhost:8000/api/predict", json=api_data)
+    assert response.status_code == 200, f"API request failed: {response.text}"
     api_prediction = response.json()["prediction"]
     
-    # Get prediction directly from model
+    # Get prediction directly from model (using the same preprocessing as the API)
     X_train, X_test, y_train, y_test = prepare_data("churn-bigml-80.csv", "churn-bigml-20.csv")
     model = train_model(X_train, y_train)
-    direct_prediction = model.predict(test_row.values.reshape(1, -1))[0]
+    
+    # Get the preprocessed row from X_test that corresponds to the test_row
+    test_row_index = 0
+    direct_prediction = model.predict(X_test.iloc[test_row_index:test_row_index+1])[0]
     
     # Compare predictions
-    assert api_prediction == direct_prediction
+    assert api_prediction == direct_prediction, f"API prediction {api_prediction} != direct prediction {direct_prediction}"
