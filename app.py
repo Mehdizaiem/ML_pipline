@@ -175,8 +175,19 @@ async def get_test_results():
     try:
         # Try to read from test_results.json
         if os.path.exists("test_results.json"):
-            with open("test_results.json", "r") as f:
-                return json.load(f)
+            try:
+                with open("test_results.json", "r") as f:
+                    data = json.load(f)
+                return data
+            except json.JSONDecodeError:
+                logger.error("Invalid JSON in test_results.json")
+                # Return empty results instead of failing
+                return {
+                    "total": 0,
+                    "passed": 0,
+                    "failed": 0,
+                    "results": []
+                }
         return {
             "total": 0,
             "passed": 0,
@@ -185,7 +196,13 @@ async def get_test_results():
         }
     except Exception as e:
         logger.error(f"Error getting test results: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        # Return empty results instead of raising an error
+        return {
+            "total": 0,
+            "passed": 0,
+            "failed": 0,
+            "results": []
+        }
 
 @app.post("/api/test-results")
 async def save_test_results(results: TestResults):

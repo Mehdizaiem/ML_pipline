@@ -9,7 +9,8 @@ services:
       - ./model.pkl:/app/model.pkl
       - ./churn-bigml-80.csv:/app/churn-bigml-80.csv
       - ./churn-bigml-20.csv:/app/churn-bigml-20.csv
-      - ./test_results_fallback.json:/app/test_results.json
+      - ./test_results:/app/test_results
+      - ./test_results.json:/app/test_results.json
     environment:
       - PORT=8000
     networks:
@@ -33,3 +34,14 @@ services:
 networks:
   ml-network:
     driver: bridge
+
+
+
+
+
+
+
+
+
+
+

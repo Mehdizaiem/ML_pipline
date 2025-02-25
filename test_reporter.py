@@ -57,10 +57,10 @@ def send_results(results):
         for attempt in range(max_attempts):
             try:
                 response = requests.post(
-                    "http://localhost:8000/api/test-results",
+                    "http://host.docker.internal:8000/api/test-results",
                     json=results,
                     headers={"Content-Type": "application/json"},
-                    timeout=10  # Add a timeout
+                    timeout=10
                 )
                 response.raise_for_status()
                 print(f"Successfully sent test results on attempt {attempt+1}")
@@ -78,7 +78,7 @@ def send_results(results):
     except Exception as e:
         print(f"Error sending results: {e}")
         # Write results to a file as a fallback
-        fallback_file = "test_results_fallback.json"
+        fallback_file = "/app/test_results/test_results_fallback.json"
         try:
             with open(fallback_file, 'w') as f:
                 json.dump(results, f, indent=2)
