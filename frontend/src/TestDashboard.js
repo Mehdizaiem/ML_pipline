@@ -10,7 +10,96 @@ const TestDashboard = ({ onBack }) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [error, setError] = useState(null);
 
+  useEffect(() => {
+    fetchTestResults();
+    const interval = setInterval(fetchTestResults, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchTestResults = async () => {
+    setLoading(true);
+    try {
+      console.log("Fetching test results...");
+      const response = await fetch('http://localhost:8000/api/test-results');
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch test results: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log("Received test results:", data);
+      
+      // Handle the case where we get an empty object or missing results array
+      if (!data || !data.results || data.results.length === 0) {
+        // Generate some demo data if no results yet
+        const demoData = generateDemoTestResults();
+        setTestResults(demoData);
+        setTestCategories(processTestCategories(demoData.results || []));
+        // Show a friendly message
+        setError("No test results available yet. Showing sample data.");
+      } else {
+        setTestResults(data);
+        setTestCategories(processTestCategories(data.results || []));
+        setError(null);
+      }
+    } catch (error) {
+      console.error('Error fetching test results:', error);
+      // Generate some demo data if fetch fails
+      const demoData = generateDemoTestResults();
+      setTestResults(demoData);
+      setTestCategories(processTestCategories(demoData.results || []));
+      setError(`${error.message} - Showing sample data instead.`);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  // Function to generate demo test results when API is unavailable
+  const generateDemoTestResults = () => {
+    return {
+      total: 19,
+      passed: 16,
+      failed: 3,
+      results: [
+        {
+          name: "test_app.py::test_health_endpoint",
+          status: "passed",
+          duration: 0.05,
+          error_message: null
+        },
+        {
+          name: "test_app.py::test_features_endpoint",
+          status: "passed",
+          duration: 0.12,
+          error_message: null
+        },
+        {
+          name: "test_app.py::test_predict_endpoint_valid_input",
+          status: "passed",
+          duration: 0.18,
+          error_message: null
+        },
+        {
+          name: "test_app.py::test_probability_sum",
+          status: "failed",
+          duration: 0.15,
+          error_message: "AssertionError: assert 400 == 200"
+        },
+        {
+          name: "test_integration::test_model_api_consistency",
+          status: "failed",
+          duration: 0.22,
+          error_message: "ValueError: could not convert string to float: 'LA'"
+        },
+        {
+          name: "test_endpoints.py::test_api_response_time",
+          status: "failed",
+          duration: 0.31,
+          error_message: "assert 400 == 200"
+        }
+      ],
+      timestamp: new Date().toISOString()
+    };
   };
 
   const processTestCategories = (results) => {
@@ -318,88 +407,3 @@ const TestDashboard = ({ onBack }) => {
 };
 
 export default TestDashboard;
-  const fetchTestResults = async () => {
-    setLoading(true);
-    try {
-      console.log("Fetching test results...");
-      const response = await fetch('http://localhost:8000/api/test-results');
-      
-      if (!response.ok) {
-        throw new Error();
-      }
-      
-      const data = await response.json();
-      console.log("Received test results:", data);
-      
-      // Handle the case where we get an empty object or missing results array
-      if (!data || !data.results || data.results.length === 0) {
-        // Generate some demo data if no results yet
-        const demoData = generateDemoTestResults();
-        setTestResults(demoData);
-        setTestCategories(processTestCategories(demoData.results || []));
-        // Show a friendly message
-        setError("No test results available yet. Showing sample data.");
-      } else {
-        setTestResults(data);
-        setTestCategories(processTestCategories(data.results || []));
-        setError(null);
-      }
-    } catch (error) {
-      console.error('Error fetching test results:', error);
-      // Generate some demo data if fetch fails
-      const demoData = generateDemoTestResults();
-      setTestResults(demoData);
-      setTestCategories(processTestCategories(demoData.results || []));
-      setError();
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Function to generate demo test results when API is unavailable
-  const generateDemoTestResults = () => {
-    return {
-      total: 19,
-      passed: 16,
-      failed: 3,
-      results: [
-        {
-          name: "test_app.py::test_health_endpoint",
-          status: "passed",
-          duration: 0.05,
-          error_message: null
-        },
-        {
-          name: "test_app.py::test_features_endpoint",
-          status: "passed",
-          duration: 0.12,
-          error_message: null
-        },
-        {
-          name: "test_app.py::test_predict_endpoint_valid_input",
-          status: "passed",
-          duration: 0.18,
-          error_message: null
-        },
-        {
-          name: "test_app.py::test_probability_sum",
-          status: "failed",
-          duration: 0.15,
-          error_message: "AssertionError: assert 400 == 200"
-        },
-        {
-          name: "test_integration::test_model_api_consistency",
-          status: "failed",
-          duration: 0.22,
-          error_message: "ValueError: could not convert string to float: 'LA'"
-        },
-        {
-          name: "test_endpoints.py::test_api_response_time",
-          status: "failed",
-          duration: 0.31,
-          error_message: "assert 400 == 200"
-        }
-      ],
-      timestamp: new Date().toISOString()
-    };
-  };
