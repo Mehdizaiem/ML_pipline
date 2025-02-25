@@ -3,6 +3,7 @@
 import json
 import requests
 import sys
+import time
 from datetime import datetime
 
 def parse_pytest_output(output):
@@ -31,40 +32,24 @@ def parse_pytest_output(output):
                 if status == 'failed':
                     error_start = output.find(line) + len(line)
                     error_end = output.find('\n===', error_start)
+                    if error_end > error_start:
+                        error_message = output[error_start:error_end].strip()
+                
+                results.append({
+                    "name": test_name,
+                    "status": status,
+                    "duration": duration,
+                    "error_message": error_message
+                })
     
+    return {
+        "total": len(results),
+        "passed": sum(1 for r in results if r["status"] == "passed"),
+        "failed": sum(1 for r in results if r["status"] == "failed"),
+        "results": results,
+        "timestamp": datetime.now().isoformat()
+    }
 
-def send_results(results):
-    try:
-        # When running in Docker, use the service name instead of localhost
-        # This assumes the reporter is run with --network=ml_ml-network
-        response = requests.post(
-            "http://ml-backend:8000/api/test-results",
-            json=results,
-            headers={"Content-Type": "application/json"}
-        )
-        response.raise_for_status()
-        print("Successfully sent test results")
-        return True
-    except Exception as e:
-        print(f"Error sending results: {e}")
-        return False
-if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: python test_reporter.py <pytest_output_file>")
-        sys.exit(1)
-    
-    try:
-        with open(sys.argv[1], 'r') as f:
-            pytest_output = f.read()
-        
-        results = parse_pytest_output(pytest_output)
-        success = send_results(results)
-        
-        if not success:
-            sys.exit(1)
-    except Exception as e:
-        print(f"Error: {e}")
-        sys.exit(1)
 def send_results(results):
     try:
         # Try multiple times with a backoff strategy
@@ -104,3 +89,21 @@ def send_results(results):
         # Return True to prevent CI pipeline from failing
         # since the results are already captured in the test output
         return True  # Changed from False to True
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Usage: python test_reporter.py <pytest_output_file>")
+        sys.exit(1)
+    
+    try:
+        with open(sys.argv[1], 'r') as f:
+            pytest_output = f.read()
+        
+        results = parse_pytest_output(pytest_output)
+        success = send_results(results)
+        
+        if not success:
+            sys.exit(1)
+    except Exception as e:
+        print(f"Error: {e}")
+        sys.exit(1)
