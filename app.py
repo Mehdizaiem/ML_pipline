@@ -173,21 +173,19 @@ async def health_check():
 @app.get("/api/test-results")
 async def get_test_results():
     try:
-        # Try to read from test_results.json
-        if os.path.exists("test_results.json"):
-            try:
-                with open("test_results.json", "r") as f:
-                    data = json.load(f)
-                return data
-            except json.JSONDecodeError:
-                logger.error("Invalid JSON in test_results.json")
-                # Return empty results instead of failing
-                return {
-                    "total": 0,
-                    "passed": 0,
-                    "failed": 0,
-                    "results": []
-                }
+        # Try multiple paths for test results
+        paths_to_try = [
+            "test_results.json",  # Original path
+            "test_results/test_results.json",  # Directory path
+            "test_results/test_results_fallback.json"  # Fallback path
+        ]
+        
+        for path in paths_to_try:
+            if os.path.exists(path) and os.path.isfile(path):
+                with open(path, "r") as f:
+                    return json.load(f)
+                    
+        # If no file found, return empty results
         return {
             "total": 0,
             "passed": 0,
@@ -196,13 +194,7 @@ async def get_test_results():
         }
     except Exception as e:
         logger.error(f"Error getting test results: {str(e)}")
-        # Return empty results instead of raising an error
-        return {
-            "total": 0,
-            "passed": 0,
-            "failed": 0,
-            "results": []
-        }
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/test-results")
 async def save_test_results(results: TestResults):

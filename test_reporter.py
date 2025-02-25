@@ -78,7 +78,8 @@ def send_results(results):
     except Exception as e:
         print(f"Error sending results: {e}")
         # Write results to a file as a fallback
-        fallback_file = "/app/test_results/test_results_fallback.json"
+        # Change this line
+        fallback_file = "/app/test_results/test_results.json"
         try:
             with open(fallback_file, 'w') as f:
                 json.dump(results, f, indent=2)
