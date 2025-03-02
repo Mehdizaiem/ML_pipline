@@ -90,44 +90,33 @@ async def predict(data: FeatureInput):
         df_train = pd.read_csv("churn-bigml-80.csv")
         expected_features = list(df_train.drop(columns=['Churn']).columns)
         
+        # Create a new dictionary with features in the same order as training data
+        processed_features = {}
+        
         # Check if all required features are present
-        input_features = data.features.keys()
-        missing_features = [f for f in expected_features if f not in input_features]
-        
-        # Enforce validation for required fields
-        required_fields = ["Account length", "International plan", "Voice mail plan"]
-        missing_required = [f for f in required_fields if f not in input_features]
-        if missing_required:
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Missing required features: {missing_required}"
-            )
-        
-        # If missing non-required features, fill with default values from training data mean/mode
-        if missing_features:
-            logger.warning(f"Missing features detected: {missing_features}")
-            for feature in missing_features:
+        for feature in expected_features:
+            if feature in data.features:
+                processed_features[feature] = data.features[feature]
+            else:
+                # Fill missing features with default values
                 if feature in df_train.select_dtypes(include=['object']).columns:
                     # For categorical features, use the most common value
-                    data.features[feature] = df_train[feature].mode()[0]
+                    processed_features[feature] = df_train[feature].mode()[0]
                 else:
                     # For numerical features, use the mean
-                    data.features[feature] = float(df_train[feature].mean())
+                    processed_features[feature] = float(df_train[feature].mean())
         
-        # Convert input dict to DataFrame
-        input_df = pd.DataFrame([data.features])
+        # Convert input dict to DataFrame with features in the expected order
+        input_df = pd.DataFrame([processed_features])
+        
+        # Ensure column order matches what the model expects
+        input_df = input_df[expected_features]
         
         # Handle boolean columns
         boolean_cols = ['International plan', 'Voice mail plan']
         for col in boolean_cols:
             if col in input_df.columns:
-                try:
-                    input_df[col] = (input_df[col].str.lower() == 'yes').astype(int)
-                except:
-                    raise HTTPException(
-                        status_code=400,
-                        detail=f"Invalid value for {col}. Must be 'yes' or 'no'."
-                    )
+                input_df[col] = (input_df[col].str.lower() == 'yes').astype(int)
         
         # Handle other categorical features
         categorical_cols = input_df.select_dtypes(include=['object']).columns
@@ -142,13 +131,7 @@ async def predict(data: FeatureInput):
                 # Fit on training data
                 label_encoders[col].fit(df_train[col])
                 # Transform input data
-                try:
-                    input_df[col] = label_encoders[col].transform(input_df[col])
-                except:
-                    raise HTTPException(
-                        status_code=400,
-                        detail=f"Invalid value for {col}"
-                    )
+                input_df[col] = label_encoders[col].transform(input_df[col])
         
         # Make prediction
         prediction = model.predict(input_df)
@@ -161,16 +144,12 @@ async def predict(data: FeatureInput):
         }
         
         # Log prediction for monitoring
-        from model_monitoring import ModelMonitor
-        monitor = ModelMonitor()
         monitor.log_prediction(
             features=data.features,
             prediction=int(prediction[0])
         )
         
         return result
-    except HTTPException:
-        raise
     except Exception as e:
         logger.error(f"Prediction error: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
