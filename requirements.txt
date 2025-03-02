@@ -22,6 +22,9 @@ psutil
 # Serialization and Model Management
 joblib
 
+# For scheduled monitoring
+schedule
+
 # Authentication & Files
 python-jose[cryptography]
 aiofiles

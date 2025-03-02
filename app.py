@@ -10,6 +10,7 @@ from model_pipeline import prepare_data
 import logging
 from sklearn.preprocessing import LabelEncoder
 import json
+from model_monitoring import ModelMonitor
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -26,6 +27,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Initialize monitoring
+monitor = ModelMonitor()
 
 # Pydantic models for API requests/responses
 class FeatureInput(BaseModel):
@@ -135,6 +139,12 @@ async def predict(data: FeatureInput):
             "retention_probability": float(probability[0][0])
         }
         
+        # Log prediction for monitoring
+        monitor.log_prediction(
+            features=data.features,
+            prediction=int(prediction[0])
+        )
+        
         return result
     except Exception as e:
         logger.error(f"Prediction error: {str(e)}")
@@ -204,6 +214,40 @@ async def save_test_results(results: TestResults):
         return {"message": "Test results saved successfully"}
     except Exception as e:
         logger.error(f"Error saving test results: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# New monitoring endpoints
+@app.get("/api/monitoring/metrics")
+async def get_monitoring_metrics():
+    try:
+        with open("monitoring_logs/model_metrics.json") as f:
+            metrics = json.load(f)
+        return metrics
+    except Exception as e:
+        logger.error(f"Error fetching monitoring metrics: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/monitoring/history")
+async def get_monitoring_history():
+    try:
+        with open("monitoring_logs/model_metrics.json") as f:
+            metrics_history = json.load(f)
+        return metrics_history
+    except Exception as e:
+        logger.error(f"Error fetching monitoring history: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/monitoring/alerts")
+async def get_alerts():
+    try:
+        alerts = []
+        if os.path.exists("monitoring_logs/alerts.log"):
+            with open("monitoring_logs/alerts.log", "r") as f:
+                for line in f:
+                    alerts.append(line.strip())
+        return {"alerts": alerts}
+    except Exception as e:
+        logger.error(f"Error fetching alerts: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
