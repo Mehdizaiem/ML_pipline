@@ -90,23 +90,27 @@ async def predict(data: FeatureInput):
         df_train = pd.read_csv("churn-bigml-80.csv")
         expected_features = list(df_train.drop(columns=['Churn']).columns)
         
-        # Check if all required features are present
-        input_features = data.features.keys()
-        missing_features = [f for f in expected_features if f not in input_features]
+        # Create a new dictionary with features in the same order as training data
+        processed_features = {}
         
-        # If missing features, fill with default values from training data mean/mode
-        if missing_features:
-            logger.warning(f"Missing features detected: {missing_features}")
-            for feature in missing_features:
+        # Check if all required features are present
+        for feature in expected_features:
+            if feature in data.features:
+                processed_features[feature] = data.features[feature]
+            else:
+                # Fill missing features with default values
                 if feature in df_train.select_dtypes(include=['object']).columns:
                     # For categorical features, use the most common value
-                    data.features[feature] = df_train[feature].mode()[0]
+                    processed_features[feature] = df_train[feature].mode()[0]
                 else:
                     # For numerical features, use the mean
-                    data.features[feature] = float(df_train[feature].mean())
+                    processed_features[feature] = float(df_train[feature].mean())
         
-        # Convert input dict to DataFrame
-        input_df = pd.DataFrame([data.features])
+        # Convert input dict to DataFrame with features in the expected order
+        input_df = pd.DataFrame([processed_features])
+        
+        # Ensure column order matches what the model expects
+        input_df = input_df[expected_features]
         
         # Handle boolean columns
         boolean_cols = ['International plan', 'Voice mail plan']
@@ -149,7 +153,7 @@ async def predict(data: FeatureInput):
     except Exception as e:
         logger.error(f"Prediction error: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
-
+    
 @app.get("/api/features", response_model=List[FeatureImportance])
 async def get_features():
     model = load_model()
