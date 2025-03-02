@@ -90,10 +90,18 @@ async def predict(data: FeatureInput):
         df_train = pd.read_csv("churn-bigml-80.csv")
         expected_features = list(df_train.drop(columns=['Churn']).columns)
         
+        # Check for missing required features and log them
+        missing_features = [feature for feature in expected_features if feature not in data.features]
+        if missing_features:
+            logger.warning(f"Missing features detected: {missing_features}")
+            # Only raise HTTP exception if more than half the features are missing
+            if len(missing_features) > len(expected_features) / 2:
+                raise HTTPException(status_code=400, detail=f"Missing required features: {missing_features}")
+        
         # Create a new dictionary with features in the same order as training data
         processed_features = {}
         
-        # Check if all required features are present
+        # Process features, filling in missing ones with defaults
         for feature in expected_features:
             if feature in data.features:
                 processed_features[feature] = data.features[feature]
@@ -150,6 +158,9 @@ async def predict(data: FeatureInput):
         )
         
         return result
+    except ValueError as e:
+        logger.error(f"Prediction error: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Prediction error: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))

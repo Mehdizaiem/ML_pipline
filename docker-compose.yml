@@ -11,16 +11,21 @@ services:
       - ./churn-bigml-20.csv:/app/churn-bigml-20.csv
       - ./test_results:/app/test_results
       - ./test_results.json:/app/test_results.json
+      - ./monitoring_logs:/app/monitoring_logs
     environment:
       - PORT=8000
     networks:
       - ml-network
+    # Add healthcheck to ensure the API is ready
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   frontend:
     image: ml_pipeline_frontend:latest
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
     ports:
       - "3000:3000"
     depends_on:
@@ -29,19 +34,36 @@ services:
       - REACT_APP_API_URL=http://localhost:8000
     networks:
       - ml-network
-    # Remove the command here since we're adding it to Dockerfile
+
+  # Add testing service for running tests
+  test-runner:
+    image: ml_pipeline:latest
+    command: /bin/bash -c "sleep 10 && python -m pytest tests/"
+    volumes:
+      - ./model.pkl:/app/model.pkl
+      - ./churn-bigml-80.csv:/app/churn-bigml-80.csv
+      - ./churn-bigml-20.csv:/app/churn-bigml-20.csv
+      - ./test_results:/app/test_results
+      - ./test_results.json:/app/test_results.json
+    depends_on:
+      - ml-backend
+    networks:
+      - ml-network
+
+  model-evaluator:
+    image: ml_pipeline:latest
+    command: python scheduled_evaluation.py
+    volumes:
+      - ./model.pkl:/app/model.pkl
+      - ./churn-bigml-80.csv:/app/churn-bigml-80.csv
+      - ./churn-bigml-20.csv:/app/churn-bigml-20.csv
+      - ./monitoring_logs:/app/monitoring_logs
+      - ./alert_config.json:/app/alert_config.json
+    depends_on:
+      - ml-backend
+    networks:
+      - ml-network
 
 networks:
   ml-network:
     driver: bridge
-
-
-
-
-
-
-
-
-
-
-
