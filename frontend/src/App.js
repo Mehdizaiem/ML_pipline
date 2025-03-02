@@ -6,10 +6,12 @@ import { Card, Metric, Text, Title, BarChart, LineChart, DonutChart } from '@tre
 import CountUp from 'react-countup';
 import TestDashboard from './TestDashboard';
 import {Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import MonitoringDashboard from './MonitoringDashboard';
 function App() {
   const [showDashboard, setShowDashboard] = useState(false);
   const [loading, setLoading] = useState(false);
   const [features, setFeatures] = useState([]);
+  const [showMonitoring, setShowMonitoring] = useState(false);
   const [formData, setFormData] = useState({
     'State': 'KS',
     'Account length': 100,
@@ -137,7 +139,7 @@ function App() {
       setLoading(false);
     }
   };
-
+  
   const showAlert = (message, severity) => {
     setAlert({
       open: true,
@@ -161,6 +163,10 @@ function App() {
     }));
   };
 
+  if (showMonitoring) {
+    return <MonitoringDashboard onBack={() => setShowMonitoring(false)} />;
+  }
+  
   if (showDashboard) {
     return <TestDashboard onBack={() => setShowDashboard(false)} />;
   }
@@ -217,7 +223,29 @@ function App() {
                 Customer Information
               </h2>
             </div>
+            <div className="flex space-x-4">
+            <motion.button
+              onClick={() => setShowDashboard(true)}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg
+                      transition-colors duration-200 flex items-center space-x-2 shadow-lg"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <ChartPieIcon className="h-5 w-5" />
+              <span>View Test Results</span>
+            </motion.button>
 
+            <motion.button
+              onClick={() => setShowMonitoring(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg
+                      transition-colors duration-200 flex items-center space-x-2 shadow-lg"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <ChartBarIcon className="h-5 w-5" />
+              <span>Model Monitoring</span>
+            </motion.button>
+          </div>
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Customer Basic Info */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
