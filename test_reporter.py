@@ -51,15 +51,54 @@ def parse_pytest_output(output):
         "timestamp": datetime.now().isoformat()
     }
 
-def save_to_file(results, fallback_file):
-    """Save results to a local file"""
+def save_to_file(results, output_dir="test_results"):
+    """Save results to local files"""
     try:
-        # Create parent directories if they don't exist
-        os.makedirs(os.path.dirname(fallback_file), exist_ok=True)
+        # Create directories if they don't exist
+        os.makedirs(output_dir, exist_ok=True)
         
+        # Save to directory structure
+        fallback_file = os.path.join(output_dir, "test_results.json")
+        
+        # First try to read existing results
+        existing_results = {"total": 0, "passed": 0, "failed": 0, "results": []}
+        try:
+            if os.path.exists(fallback_file):
+                with open(fallback_file, 'r') as f:
+                    existing_results = json.load(f)
+        except Exception as read_error:
+            print(f"Failed to read existing results: {read_error}")
+        
+        # Merge results (combine existing results with new ones)
+        existing_test_names = {r["name"] for r in existing_results.get("results", [])}
+        
+        # Add new results, replacing existing ones with the same name
+        new_results = [r for r in existing_results.get("results", []) 
+                      if r["name"] not in {nr["name"] for nr in results["results"]}]
+        new_results.extend(results["results"])
+        
+        # Update totals
+        merged_results = {
+            "total": len(new_results),
+            "passed": sum(1 for r in new_results if r["status"] == "passed"),
+            "failed": sum(1 for r in new_results if r["status"] == "failed"),
+            "results": new_results,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        # Write the merged results
         with open(fallback_file, 'w') as f:
-            json.dump(results, f, indent=2)
+            json.dump(merged_results, f, indent=2)
         print(f"Results saved to {fallback_file}")
+        
+        # For backward compatibility, also save to root directory
+        try:
+            with open("test_results.json", 'w') as f:
+                json.dump(merged_results, f, indent=2)
+            print("Also saved results to root directory")
+        except Exception as e:
+            print(f"Note: Could not save to root directory: {e}")
+            
         return True
     except Exception as file_error:
         print(f"Failed to save results to file: {file_error}")
@@ -67,17 +106,17 @@ def save_to_file(results, fallback_file):
 
 def send_results(results):
     try:
+        # Always save to file first as backup
+        save_to_file(results)
+        
         # Try multiple times with a backoff strategy
         max_attempts = 3
         endpoints = [
-            "http://host.docker.internal:8000/api/test-results",  # Docker internal DNS
-            "http://localhost:8000/api/test-results",             # Local address
-            "http://ml-backend:8000/api/test-results"             # Service name in docker-compose
+            "http://localhost:8000/api/test-results",          # Local address
+            "http://127.0.0.1:8000/api/test-results",          # Alternative local address
+            "http://ml-backend:8000/api/test-results",         # Service name in docker-compose
+            "http://host.docker.internal:8000/api/test-results" # Docker internal DNS
         ]
-        
-        # Save to file first as backup
-        fallback_file = "/app/test_results/test_results.json"
-        save_to_file(results, fallback_file)
         
         # Try endpoints with retries
         for endpoint in endpoints:
@@ -90,9 +129,20 @@ def send_results(results):
                         headers={"Content-Type": "application/json"},
                         timeout=10
                     )
-                    response.raise_for_status()
-                    print(f"Successfully sent test results to {endpoint}")
-                    return True
+                    
+                    # Check if we got a successful response
+                    if response.status_code == 200:
+                        print(f"Successfully sent test results to {endpoint}")
+                        return True
+                    else:
+                        print(f"API returned status code {response.status_code}: {response.text}")
+                        if attempt < max_attempts - 1:
+                            wait_time = 2 ** attempt  # Exponential backoff
+                            print(f"Retrying in {wait_time} seconds...")
+                            time.sleep(wait_time)
+                        else:
+                            print(f"Failed to send results to {endpoint} after {max_attempts} attempts.")
+                            
                 except requests.exceptions.ConnectionError:
                     if attempt < max_attempts - 1:
                         # Wait and retry
