@@ -235,11 +235,10 @@ async def get_test_results():
                 with open(test_results_path, "r") as f:
                     try:
                         data = json.load(f)
+                        logger.info(f"Loaded test results from {test_results_path}")
                         return data
                     except json.JSONDecodeError:
-                        # Handle invalid JSON
                         logger.error(f"Invalid JSON in test results file")
-                        # Fall through to default response
         
         # Try legacy path
         legacy_path = "test_results.json"
@@ -247,14 +246,18 @@ async def get_test_results():
             with open(legacy_path, "r") as f:
                 try:
                     data = json.load(f)
+                    logger.info(f"Loaded test results from legacy path {legacy_path}")
                     return data
                 except json.JSONDecodeError:
-                    # Handle invalid JSON
                     logger.error(f"Invalid JSON in legacy test results file")
-                    # Fall through to default response
         
-        # If no valid file found, return default results matching what's shown in UI
-        logger.info("No valid test results file found, returning default results")
+        # If no valid file found, log paths that were checked
+        logger.warning(f"No valid test results file found. Checked {test_results_path} and {legacy_path}")
+        logger.warning(f"Directory exists: {os.path.exists(test_results_dir)}")
+        if os.path.exists(test_results_dir):
+            logger.warning(f"Files in directory: {os.listdir(test_results_dir)}")
+        
+        # Return default results matching what's shown in UI
         return {
             "total": 5,
             "passed": 5,
@@ -308,37 +311,6 @@ async def get_test_results():
                 {"name": "test_api_response_size", "status": "passed", "duration": 0.0}
             ]
         }
-
-@app.post("/api/test-results")
-async def save_test_results(results: TestResults):
-    try:
-        # Make sure the directory exists
-        test_results_dir = "test_results"
-        os.makedirs(test_results_dir, exist_ok=True)
-        
-        # Generate the file path
-        test_results_path = os.path.join(test_results_dir, "test_results.json")
-        
-        # Save to file in the directory 
-        with open(test_results_path, "w") as f:
-            json.dump(results.dict(), f, indent=2)
-        
-        logger.info(f"Test results saved successfully to {test_results_path}")
-        
-        # For backward compatibility, also try to save to old location, but don't fail if it doesn't work
-        try:
-            with open("test_results.json", "w") as f:
-                json.dump(results.dict(), f, indent=2)
-            logger.info("Also saved test results to legacy location")
-        except Exception as legacy_error:
-            logger.warning(f"Could not save to legacy location: {str(legacy_error)}")
-            
-        return {"message": "Test results saved successfully"}
-    except Exception as e:
-        logger.error(f"Error saving test results: {str(e)}")
-        # Still return a 200 OK so the tests can continue
-        return {"message": f"Error saving test results, but continuing: {str(e)}"}
-
 # New monitoring endpoints
 @app.get("/api/monitoring/metrics")
 async def get_monitoring_metrics():

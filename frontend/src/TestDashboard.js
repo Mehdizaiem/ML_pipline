@@ -20,23 +20,30 @@ const TestDashboard = ({ onBack }) => {
     setLoading(true);
     try {
       console.log("Fetching test results...");
-      const response = await fetch('http://localhost:8000/api/test-results');
+      const apiUrl = 'http://localhost:8000/api/test-results';
+      console.log(`Using API URL: ${apiUrl}`);
+      
+      const response = await fetch(apiUrl);
+      
+      console.log(`Response status: ${response.status} ${response.statusText}`);
       
       if (!response.ok) {
         throw new Error(`Failed to fetch test results: ${response.status} ${response.statusText}`);
       }
       
       const data = await response.json();
-      console.log("Received test results:", data);
+      console.log("Received test results:", JSON.stringify(data, null, 2));
       
       // Handle the case where we get an empty object or missing results array
       if (!data || !data.results || data.results.length === 0) {
+        console.warn("Received empty or invalid test results data");
         // Generate sample data based on the screenshots showing 5 passed tests
         const demoData = generateTestResults();
         setTestResults(demoData);
         setTestCategories(processTestCategories(demoData.results || []));
         setError("Using default test results. Live data will appear when tests are executed.");
       } else {
+        console.log(`Successfully parsed ${data.results.length} test results`);
         setTestResults(data);
         setTestCategories(processTestCategories(data.results || []));
         setError(null);

@@ -52,10 +52,16 @@ def parse_pytest_output(output):
     }
 
 def save_to_file(results, output_dir="test_results"):
-    """Save results to local files"""
+    """Save results to local files with improved error handling"""
     try:
         # Create directories if they don't exist
         os.makedirs(output_dir, exist_ok=True)
+        
+        # Give output directory proper permissions
+        try:
+            os.chmod(output_dir, 0o777)  # rwx for all users
+        except Exception as perm_error:
+            print(f"Warning: Couldn't set permissions on directory: {perm_error}")
         
         # Save to directory structure
         fallback_file = os.path.join(output_dir, "test_results.json")
@@ -89,6 +95,13 @@ def save_to_file(results, output_dir="test_results"):
         # Write the merged results
         with open(fallback_file, 'w') as f:
             json.dump(merged_results, f, indent=2)
+        
+        # Make sure file has proper permissions
+        try:
+            os.chmod(fallback_file, 0o666)  # rw for all users
+        except Exception as perm_error:
+            print(f"Warning: Couldn't set permissions on file: {perm_error}")
+            
         print(f"Results saved to {fallback_file}")
         
         # For backward compatibility, also save to root directory
@@ -103,7 +116,7 @@ def save_to_file(results, output_dir="test_results"):
     except Exception as file_error:
         print(f"Failed to save results to file: {file_error}")
         return False
-
+    
 def send_results(results):
     try:
         # Always save to file first as backup
